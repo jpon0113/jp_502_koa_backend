@@ -1,7 +1,11 @@
 const router = require('koa-router')();
 const jwt = require('jsonwebtoken');
+const md5 = require('md5');
+
 const User = require('./../models/userSchema');
+const Counter = require('./../models/counterSchema');
 const util = require('./../utils/util');
+
 router.prefix('/users');
 
 // 登入
@@ -66,7 +70,6 @@ router.get('/list', async (ctx) => {
 router.post('/delete', async (ctx) => {
 	// 待删除的用户Id数组
 	const { userIds } = ctx.request.body;
-	console.log('userIds', userIds);
 	// User.updateMany({ $or: [{ userId: 10001 }, { userId: 10002 }] })
 	const res = await User.updateMany({ userId: { $in: userIds } }, { state: 2 });
 	if (res.nModified) {
@@ -93,6 +96,40 @@ router.post('/operate', async (ctx) => {
 		if (!userName || !userEmail || !deptId) {
 			ctx.body = util.fail('參數錯誤', util.CODE.PARAM_ERROR);
 			return;
+		}
+		const res = await User.findOne(
+			{ $or: [{ userName }, { userEmail }] },
+			'_id userName userEmail'
+		);
+		console.log('rrr', res);
+		if (res) {
+			ctx.body = util.fail(
+				`監測到為重複用戶，資訊如下：${res.userName} - ${res.userEmail}`
+			);
+		} else {
+			const doc = await Counter.findOneAndUpdate(
+				{ _id: 'userId' },
+				{ $inc: { sequence_value: 1 } },
+				{ new: true }
+			);
+			try {
+				const user = new User({
+					userId: doc.sequence_value,
+					userName,
+					userPwd: md5('123456'),
+					userEmail,
+					role: 1, //默认普通用户
+					roleList,
+					job,
+					state,
+					deptId,
+					mobile,
+				});
+				user.save();
+				ctx.body = util.success('', '使用者新增成功');
+			} catch (error) {
+				ctx.body = util.fail(error.stack, '使用者新增失敗');
+			}
 		}
 	} else {
 		if (!deptId) {
