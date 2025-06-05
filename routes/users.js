@@ -62,4 +62,17 @@ router.get('/list', async (ctx) => {
 	}
 });
 
+// 删除|批量刪除
+router.post('/delete', async (ctx) => {
+	// 待删除的用户Id数组
+	const { userIds } = ctx.request.body;
+	console.log('userIds', userIds);
+	// User.updateMany({ $or: [{ userId: 10001 }, { userId: 10002 }] })
+	const res = await User.updateMany({ userId: { $in: userIds } }, { state: 2 });
+	if (res.nModified) {
+		ctx.body = util.success(res, `共刪除成功${res.nModified}條`);
+		return;
+	}
+	ctx.body = util.fail('刪除失敗');
+});
 module.exports = router;

@@ -56,7 +56,7 @@ app.use(
 router.prefix('/api');
 
 router.get('/leave/count', (ctx) => {
-	console.log('=>', ctx.request.headers);
+	// console.log('=>', ctx.request.headers);
 	const token = ctx.request.headers.authorization.split(' ')[1];
 	const payload = jwt.verify(token, '502_manager');
 	ctx.body = payload;
